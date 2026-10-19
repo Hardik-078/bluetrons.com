@@ -1,0 +1,884 @@
+@import "tailwindcss";
+
+/* ============================================================ */
+/* DESIGN TOKENS                                                */
+/*                                                              */
+/* Every colour resolves through these. Nothing downstream      */
+/* hardcodes a hex value.                                       */
+/*                                                              */
+/* There is no theme system. :root IS the site -- a dark        */
+/* technology environment -- and the homepage passes through    */
+/* one art-directed band of paper on its way down. That band    */
+/* is .env-light, a SCOPE that restates the same token names    */
+/* locally, so every var() downstream keeps resolving with no   */
+/* second class and no per-utility variant. It is a fixed       */
+/* composition, not a preference: no toggle, no storage.        */
+/*                                                              */
+/* Two accent roles exist on purpose: --accent is decorative    */
+/* (glows, rails, marks) and --accent-ink is accent-as-text.    */
+/* The brand gradient runs cyan -> azure -> cobalt, and each    */
+/* environment takes the end of it that its ground can carry:   */
+/* cyan measures ~1.9:1 on paper, so the light band uses the    */
+/* cobalt end. Same brand, the legible half of it.              */
+/*                                                              */
+/* Effects that are additive by nature (the pointer canvas, the */
+/* starfield, the mesh glows) belong to the dark environment    */
+/* and are simply covered by the opaque light band.             */
+/* ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* Brand hues -- fixed in every theme. Held as bare channels so any
+     alpha can be mixed with rgb(var(--x) / a) without a second token. */
+  --brand-cyan-rgb: 0 197 245;
+  --brand-cobalt-rgb: 0 82 204;
+  --brand-cyan: rgb(var(--brand-cyan-rgb));
+  --brand-azure: #0070f3;
+  --brand-cobalt: rgb(var(--brand-cobalt-rgb));
+  --brand-sky: #38bdf8;
+
+  /* Warm paper. The previous cool #f6f7f9 / #ffffff pair was a 7% luminance
+     step -- too close to separate a section from a card, which is why light
+     read flat. --surface-sunken is now a real alternating band (8.3% step). */
+  --surface-base: #030305;
+  --surface-sunken: #040509;
+  --surface-raised: #05070c;
+  --surface-panel: #07090e;
+
+  /* Warm-neutral ink. Every step solved against --surface-sunken (the harder
+     ground) and clears AA: 7.42 / 6.15 / 5.20 / 4.61:1 for ink-3..6. */
+  --ink-1: #f4f4fa;
+  --ink-2: #dfe4ee;
+  --ink-3: #aab2c4;
+  --ink-4: #939daf;
+  --ink-5: #818b9d;
+  --ink-6: #6f798b;
+  --ink-inverse: #ffffff;
+
+  /* Accent roles. ~7.6:1 for --accent-ink on --surface-base. */
+  --accent: var(--brand-cyan);
+  --accent-ink: var(--brand-cyan);
+  --accent-deep: var(--brand-cobalt);
+  --accent-rgb: var(--brand-cyan-rgb);
+  --accent-deep-rgb: var(--brand-cobalt-rgb);
+
+  /* Hairlines. One channel plus per-theme alphas: black at 0.06 on paper
+     is weaker than white at 0.06 on near-black, so the ladder is not
+     symmetric and the alphas are overridden per theme. */
+  --rule-rgb: 255 255 255;
+  --rule-a-wash: 0.02;
+  --rule-a-wash-strong: 0.05;
+  --rule-a-faint: 0.06;
+  --rule-a-rule: 0.08;
+  --rule-a-strong: 0.14;
+  --rule-a-prominent: 0.25;
+
+  /* Depth. Alpha differs by an order of magnitude between themes, so these
+     are complete colours rather than a shared channel. */
+  --shadow-heavy: rgb(0 0 0 / 0.85);
+  --shadow-ambient: rgb(0 0 0 / 0.5);
+  --shadow-plate: rgb(0 40 90 / 0.9);
+
+  /* The mark's gradient darkens on light so the cyan end stays legible. */
+  --mark-stop-1: #0052cc;
+  --mark-stop-2: #00c5f5;
+  --mark-stop-3: #38bdf8;
+
+  /* Depth field behind the About hero. On light these are ink specks,
+     not stars, so the colour darkens and the field is thinned. */
+  --star: #9fd8ff;
+  --star-alpha: 1;
+
+  /* The wordmark is a single gradient image crossing two grounds. Its filter is
+   composed in one place rather than through utilities, because Tailwind's
+   filter utilities and a plain `filter` declaration overwrite each other. */
+.site-wordmark {
+  filter: var(--logo-filter, none) drop-shadow(0 0 12px var(--logo-glow));
+  transition: filter 320ms var(--ease-out-quad);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .site-wordmark {
+    filter: var(--logo-filter, none) brightness(1.1)
+      drop-shadow(0 0 14px var(--logo-glow));
+  }
+}
+
+/* Pointer-trail canvas. `lighter` + `screen` sum toward white, which is
+     invisible on paper, so light uses ordinary compositing with multiply
+     and a darker, slightly more opaque stroke. */
+  --canvas-blend: screen;
+  --canvas-composite: lighter;
+  --canvas-opacity: 0.65;
+  --canvas-stroke-s: 100%;
+  --canvas-stroke-l: 55%;
+  --canvas-stroke-a: 0.055;
+
+  /* Ambient glows. Near-zero on paper: a blurred radial on a light ground
+     reads as a smudge, not as depth. Depth here comes from grounds and rules. */
+  --mesh-opacity-1: 0.07;
+  --mesh-opacity-2: 0.04;
+  --hero-glow-1: rgb(var(--accent-rgb) / 0.35);
+  --hero-glow-2: rgb(var(--accent-deep-rgb) / 0.18);
+  --hero-glow-opacity: 0.4;
+
+  /* A cyan halo around the wordmark goes muddy on paper. */
+  --logo-glow: rgb(var(--accent-rgb) / 0.3);
+
+  /* Section hairline. Lives here rather than on .sec-page because the
+     sections render on two routes. Restated in .env-light: substitution
+     happens where a custom property is DECLARED, so a derived token does
+     not re-resolve inside a scope that changes its inputs. */
+  --sec-rule: var(--rule-faint);
+
+  /* Plates: the enclosure /terms is built from. */
+  --plate-bg: linear-gradient(
+    160deg,
+    rgb(var(--rule-rgb) / 0.035),
+    rgb(var(--rule-rgb) / 0.008)
+  );
+  --plate-border: var(--rule-faint);
+  --plate-border-top: var(--rule-faint);
+
+  /* Floating chrome stays dark on both grounds, on purpose: a dark hardware
+     object over light content reads as a system layer distinct from the page,
+     which is also why the dock needs no ground awareness at all. */
+  --chrome-bg: rgb(7 9 14 / 0.85);
+  --chrome-border: var(--rule-strong);
+  --chrome-shadow: 0 12px 36px rgb(0 0 0 / 0.85);
+
+  /* Driven by [data-ground] on <html>. The wordmark is a cyan-to-cobalt
+     gradient image; its cyan half measures ~1.9:1 on paper, so it is
+     deepened while the header floats over the light band. */
+  --logo-filter: none;
+
+  /* The primary button is a dark bezel on dark. The light band gives it a
+     solid accent fill instead, because a white bezel on paper has no edge. */
+  --btn-primary-bg: var(--surface-raised);
+  --btn-primary-ink: #ffffff;
+  --btn-primary-border: color-mix(in srgb, var(--accent) 45%, transparent);
+
+  /* Text drawn over the selection highlight and over the hover cursor. */
+  --selection-ink: #ffffff;
+  --cursor-hover-ink: #ffffff;
+
+  /* Entering and exiting take the strong out-curve: movement is visible on
+     the first frame, which is the frame the eye is on. Anything travelling
+     ACROSS the screen takes the in-out curve instead. */
+  --ease-out-quad: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* ---- Type scale ----------------------------------------------------
+     A single ~1.25 modular scale. Every size in the site comes from a step,
+     so sizes relate to each other instead of each block inventing its own
+     clamp(). Fluid between the two ends rather than jumping at breakpoints. */
+  --step--2: clamp(0.66rem, 0.64rem + 0.1vw, 0.72rem);
+  --step--1: clamp(0.8rem, 0.77rem + 0.16vw, 0.9rem);
+  --step-0: clamp(0.95rem, 0.91rem + 0.22vw, 1.08rem);
+  --step-1: clamp(1.14rem, 1.05rem + 0.45vw, 1.4rem);
+  --step-2: clamp(1.4rem, 1.22rem + 0.9vw, 1.95rem);
+  --step-3: clamp(1.72rem, 1.4rem + 1.6vw, 2.7rem);
+  --step-4: clamp(2.1rem, 1.6rem + 2.6vw, 3.6rem);
+  --step-5: clamp(2.6rem, 1.8rem + 4vw, 5rem);
+  --step-6: clamp(3rem, 1.9rem + 5.6vw, 6.4rem);
+
+  /* Measure. Body copy past ~68 characters is measurably harder to track. */
+  --measure: 65ch;
+  --measure-tight: 46ch;
+
+  /* Back-compat aliases for the original two tokens */
+  --background: var(--surface-base);
+  --foreground: var(--ink-1);
+}
+
+/* Derived hairlines. One channel plus a ladder of alphas. */
+:root {
+  --wash: rgb(var(--rule-rgb) / var(--rule-a-wash));
+  --wash-strong: rgb(var(--rule-rgb) / var(--rule-a-wash-strong));
+  --rule-faint: rgb(var(--rule-rgb) / var(--rule-a-faint));
+  --rule: rgb(var(--rule-rgb) / var(--rule-a-rule));
+  --rule-strong: rgb(var(--rule-rgb) / var(--rule-a-strong));
+  --rule-prominent: rgb(var(--rule-rgb) / var(--rule-a-prominent));
+}
+
+/* ============================================================ */
+/* THE LIGHT ENVIRONMENT                                        */
+/*                                                              */
+/* One band of the homepage, not a mode. Everything above and   */
+/* below it is the dark environment; this scope restates the    */
+/* same token names so the whole cascade inside it flips with   */
+/* no downstream change.                                        */
+/*                                                              */
+/* The derived hairlines are restated by hand rather than       */
+/* recomputed. A var() inside a custom property is substituted  */
+/* where that property is DECLARED -- on :root -- so changing   */
+/* --rule-rgb here would not move --rule-faint. The alphas are  */
+/* also not the dark ladder: black at 0.06 on paper is far      */
+/* weaker than white at 0.06 on near-black, so the ladder is    */
+/* deliberately asymmetric between the two environments.        */
+/*                                                              */
+/* #F5F5F2 is the chosen ground: warm enough to stay paper,     */
+/* never white. White is rationed to exactly one surface on     */
+/* the page, which is what keeps it reading as a plane rather   */
+/* than as card decoration.                                     */
+/* ============================================================ */
+
+.env-light {
+  color-scheme: light;
+
+  --surface-base: #f5f5f2;
+  --surface-sunken: #efefeb;
+  --surface-raised: #ffffff;
+  --surface-panel: #ffffff;
+
+  /* Ink on paper is black, every role of it. The ladder used to step down
+     through greys (to 4.6:1 at the bottom), and secondary copy set in them
+     read as too faint to be comfortable. So all six roles take the same
+     near-black as the headings, 18.5:1 on #F5F5F2, and hierarchy on paper
+     comes from size, weight, type family and the cobalt accent instead of
+     from lighter ink. The role names stay, so the dark environment keeps
+     its own ladder and nothing downstream changes. */
+  --ink-1: #0b0d0f;
+  --ink-2: #0b0d0f;
+  --ink-3: #0b0d0f;
+  --ink-4: #0b0d0f;
+  --ink-5: #0b0d0f;
+  --ink-6: #0b0d0f;
+  --ink-inverse: #ffffff;
+
+  /* The cobalt end of the brand gradient. 6.1:1 decorative, 7.4:1 as ink. */
+  --accent: #0052cc;
+  --accent-ink: #0047b2;
+  --accent-deep: #003a8c;
+  --accent-rgb: 0 82 204;
+  --accent-deep-rgb: 0 58 140;
+
+  --rule-rgb: 11 13 15;
+  --wash: rgb(11 13 15 / 0.02);
+  --wash-strong: rgb(11 13 15 / 0.045);
+  --rule-faint: rgb(11 13 15 / 0.09);
+  --rule: rgb(11 13 15 / 0.13);
+  --rule-strong: rgb(11 13 15 / 0.2);
+  --rule-prominent: rgb(11 13 15 / 0.32);
+  --sec-rule: rgb(11 13 15 / 0.09);
+
+  /* Depth on paper comes from grounds and rules. A blurred radial here reads
+     as a smudge, so the plate shadow is switched off rather than lightened. */
+  --shadow-heavy: rgb(11 13 15 / 0.1);
+  --shadow-ambient: rgb(11 13 15 / 0.06);
+  --shadow-plate: transparent;
+  --plate-bg: transparent;
+  --plate-border: rgb(11 13 15 / 0.09);
+  --plate-border-top: rgb(11 13 15 / 0.09);
+
+  /* The mark darkens so its cyan end stays legible. */
+  --mark-stop-1: #003a8c;
+  --mark-stop-2: #0052cc;
+  --mark-stop-3: #0070f3;
+  --logo-glow: transparent;
+
+  --btn-primary-bg: #0052cc;
+  --btn-primary-ink: #ffffff;
+  --btn-primary-border: #0052cc;
+  --selection-ink: #0b0d0f;
+}
+
+/* The ground is a separate class from the tokens on purpose. The threshold
+   needs the light ink ladder for the copy sitting in its lower half, but it
+   must keep its own dark-to-paper gradient showing through, so it takes
+   .env-light alone. Everything that really is on paper takes both. */
+/* flow-root, so no child's margin collapses through the top of the ground and
+   opens a gap in the paper. A BFC is safe here -- unlike overflow, it does not
+   create a scroll container, so the sticky scenes inside keep working. */
+.env-light-ground {
+  display: flow-root;
+  background-color: var(--surface-base);
+  color: var(--ink-1);
+}
+
+/* The paper arrives over the hero.
+   The threshold's track is two viewports with the hero pinned in the first
+   (sections.css, .thr), and this ground is pulled back over the second, so it
+   scrolls up across the pinned hero with the page -- layout, not script, so
+   it cannot trail the scroll at any speed. Pulled back one feather less than
+   a full viewport, so at rest the lip is still below the fold and the hero is
+   untouched.
+
+   The lip is a pseudo-element hanging above the box rather than part of it, so
+   the ground observer measures the opaque edge: the chrome only switches to
+   the light ground once paper, not feather, is behind it. */
+@media (min-width: 900px) {
+  .env-light-ground {
+    position: relative;
+    z-index: 1;
+    margin-top: calc(var(--feather) - 100dvh);
+  }
+
+  .env-light-ground::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: var(--feather);
+    pointer-events: none;
+    /* The brand accent rides the leading edge: it peaks where the mask is
+       roughly halfway, a cool edge on the light side of the boundary. */
+    background:
+      linear-gradient(
+        180deg,
+        rgb(var(--brand-cyan-rgb) / 0) 0,
+        rgb(var(--brand-cyan-rgb) / 0.17) 72%,
+        rgb(var(--brand-cyan-rgb) / 0) 100%
+      ),
+      var(--surface-base);
+    /* A long faint approach, then a fast last third, so the boundary reads as
+       a soft edge that commits rather than as fog. */
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      rgb(0 0 0 / 0.07) 34%,
+      rgb(0 0 0 / 0.38) 68%,
+      #000 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      rgb(0 0 0 / 0.07) 34%,
+      rgb(0 0 0 / 0.38) 68%,
+      #000 100%
+    );
+  }
+}
+
+/* Floating chrome reads what is behind it.
+   <html data-ground> is written by lib/useGroundObserver.ts from whichever
+   [data-ground] element is crossing the line just under the header. It is a
+   derived attribute with no user control, no storage and no pre-paint script
+   -- chrome adaptation, not a theme -- and exactly these rules consume it. */
+:root[data-ground="light"] {
+  --cursor-hover-ink: #0b0d0f;
+  --logo-filter: saturate(1.2) brightness(0.68);
+  --logo-glow: transparent;
+}
+
+@theme inline {
+  --color-background: var(--surface-base);
+  --color-foreground: var(--ink-1);
+
+  --color-surface-base: var(--surface-base);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-panel: var(--surface-panel);
+
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-ink-6: var(--ink-6);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-deep: var(--accent-deep);
+  --color-brand-sky: var(--brand-sky);
+
+  --color-wash: var(--wash);
+  --color-wash-strong: var(--wash-strong);
+  --color-rule-faint: var(--rule-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-rule-prominent: var(--rule-prominent);
+
+  --font-serif: var(--font-cormorant);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-sans: var(--font-geist);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* No scroll-behavior: smooth. Scrolling is smoothed by Lenis
+     (components/SmoothScroll.tsx), and a CSS smooth scroll underneath it turns
+     every position Lenis writes into an animation of its own.
+
+     The gutter is reserved so that anything which briefly makes the page
+     unscrollable (Lenis stopping, a dialog) does not shift the whole page
+     sideways by the scrollbar's width. On a page that scrolls, which is every
+     page here, this reserves exactly the space the scrollbar already takes. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  background-color: var(--surface-base);
+  color: var(--ink-1);
+  font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--selection-ink);
+}
+
+/* Pointer-trail canvas. Blend mode lives here rather than inline because
+   assigning a var() through CSSOM is not dependable across browsers. */
+#canvas {
+  opacity: var(--canvas-opacity);
+  mix-blend-mode: var(--canvas-blend);
+}
+
+/* ============================================================ */
+/* CINEMATIC KEYFRAMES                                          */
+/* ============================================================ */
+
+@keyframes charReveal {
+  0% {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes wordReveal {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes glitter {
+  0%,
+  100% {
+    filter: brightness(1)
+      drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 35%, transparent));
+  }
+  50% {
+    filter: brightness(1.25)
+      drop-shadow(0 0 28px color-mix(in srgb, var(--accent) 80%, transparent));
+  }
+}
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A drop of accent runs the length of the cue's hairline, then rests before
+   the next. The rest is what makes it read as a pulse, not a conveyor. */
+@keyframes scrollCueDrop {
+  0% {
+    transform: translateY(-100%);
+  }
+  62%,
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes horizonDraw {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    width: 100vw;
+    opacity: 0.85;
+  }
+}
+
+@keyframes ringDraw {
+  0% {
+    stroke-dashoffset: 290;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes particleRise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-130px) scale(1.4);
+  }
+}
+
+@keyframes sigilGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 40%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 85%, transparent));
+  }
+}
+
+/* ============================================================ */
+/* HERO TYPOGRAPHY & ANIMATION CLASSES                          */
+/* ============================================================ */
+
+.hero-eyebrow {
+  font-family: var(--font-jetbrains-mono), monospace;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: clamp(0.7rem, 1vw, 0.82rem);
+  margin-bottom: 24px;
+}
+
+.hero-eyebrow-char {
+  opacity: 0;
+  display: inline-block;
+}
+
+.hero-eyebrow-char.is-animating {
+  animation: charReveal 0.4s var(--ease-out-quad) forwards;
+}
+
+.hero-title {
+  font-family: var(--font-cormorant), Georgia, serif;
+  color: var(--ink-1);
+  letter-spacing: -0.02em;
+  font-size: clamp(3.2rem, 8.5vw, 7.2rem);
+  font-weight: 300;
+  line-height: 1.03;
+  margin-bottom: 16px;
+}
+
+.hero-word {
+  opacity: 0;
+  display: inline-block;
+}
+
+.hero-word.is-animating {
+  animation: wordReveal 0.85s var(--ease-out-quad) forwards;
+}
+
+.hero-accent {
+  opacity: 0;
+  display: inline-block;
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(
+    135deg,
+    var(--brand-cyan) 0%,
+    var(--brand-azure) 50%,
+    var(--brand-sky) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-style: italic;
+  font-weight: 600;
+  margin-bottom: -0.1em;
+  padding-bottom: 0.1em;
+  position: relative;
+}
+
+.hero-accent.is-animating {
+  animation: wordReveal 0.85s var(--ease-out-quad) forwards,
+    glitter 3.5s ease-in-out 1.2s infinite;
+}
+
+/* Set by HeroSection once the hero is off screen: the glitter repaints every
+   frame, which is wasted work while nothing can see it. */
+.hero-accent[data-paused] {
+  animation-play-state: paused;
+}
+
+.hero-subtitle {
+  color: var(--ink-3);
+  opacity: 0;
+  max-width: 620px;
+  margin: 28px auto 0;
+  font-size: clamp(1.05rem, 1.6vw, 1.28rem);
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+.hero-subtitle.is-animating {
+  animation: fadeUp 1s var(--ease-out-quad) forwards;
+}
+
+.hero-actions {
+  opacity: 0;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 44px;
+}
+
+.hero-actions.is-animating {
+  animation: fadeUp 0.8s var(--ease-out-quad) forwards;
+}
+
+/* Scroll cue (components/ScrollCue.tsx), on both heroes. It stands in the
+   bottom-right corner, level with the floating dock, because that is the one
+   place that is free at every size: the hero copy and the dock are centred,
+   and on short laptop frames there is no room between them. On /about it sits
+   under the progress rail, on the same line. The label runs down the edge
+   beside the hairline, so the cue is narrow enough for a phone's gutter.
+   The loop is transform only, so it runs on the compositor, and it stops once
+   the cue has faded out rather than animating what nobody can see. */
+.scroll-cue[data-gone] {
+  visibility: hidden;
+}
+
+.scroll-cue-inner {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.scroll-cue-label {
+  writing-mode: vertical-rl;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  /* Tracking also follows the last letter; this keeps the word's foot level
+     with the foot of the hairline. */
+  margin-bottom: -0.3em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+/* As tall as the word beside it. */
+.scroll-cue-track {
+  position: relative;
+  width: 1px;
+  overflow: hidden;
+  background: var(--rule-strong);
+}
+
+.scroll-cue-drop {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, var(--accent) 100%);
+  transform: translateY(-100%);
+  animation: scrollCueDrop 2.4s var(--ease-in-out-strong) infinite;
+}
+
+.scroll-cue[data-gone] .scroll-cue-drop {
+  animation-play-state: paused;
+}
+
+/* Still there, still pointing down, but not moving. */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-drop {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* ============================================================ */
+/* BUTTONS                                                      */
+/* ============================================================ */
+
+.btn-horizon-primary {
+  position: relative;
+  background: var(--btn-primary-bg);
+  border: 1px solid var(--btn-primary-border);
+  color: var(--btn-primary-ink);
+  padding: 14px 34px;
+  border-radius: 9999px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  overflow: hidden;
+  box-shadow: 0 0 25px -4px color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: border-color 400ms var(--ease-out-quad),
+    box-shadow 400ms var(--ease-out-quad), transform 400ms var(--ease-out-quad);
+}
+
+.btn-horizon-primary:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 40px 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translateY(-2px);
+}
+
+.btn-horizon-primary:active {
+  transform: scale(0.97);
+  transition-duration: 120ms;
+}
+
+.btn-horizon-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.btn-horizon-secondary {
+  position: relative;
+  background: var(--wash);
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  padding: 14px 34px;
+  border-radius: 9999px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: color 400ms var(--ease-out-quad),
+    border-color 400ms var(--ease-out-quad),
+    background-color 400ms var(--ease-out-quad),
+    transform 400ms var(--ease-out-quad);
+}
+
+.btn-horizon-secondary:hover {
+  color: var(--ink-1);
+  border-color: var(--rule-prominent);
+  background: var(--wash-strong);
+  transform: translateY(-2px);
+}
+
+.btn-horizon-secondary:active {
+  transform: scale(0.97);
+  transition-duration: 120ms;
+}
+
+.btn-horizon-secondary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ============================================================ */
+/* PRELOADER                                                    */
+/* ============================================================ */
+
+.horizon-laser {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 1px;
+  width: 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: horizonDraw 1s var(--ease-out-quad) forwards;
+  box-shadow: 0 0 16px var(--accent);
+}
+
+.circle-draw {
+  animation: ringDraw 1.2s var(--ease-out-quad) 0.2s forwards;
+}
+
+.animate-sigil-glow {
+  animation: sigilGlow 2.5s ease-in-out infinite;
+}
+
+.particle-dot {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: particleRise 1.8s ease-out infinite;
+}
+
+/* ============================================================ */
+/* CUSTOM CURSOR                                                */
+/* ============================================================ */
+
+@media (pointer: fine) {
+  html,
+  body,
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    cursor: none !important;
+  }
+}
+
+.cursor-ring-hover {
+  width: 54px !important;
+  height: 54px !important;
+  border-color: var(--accent) !important;
+  background-color: color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--accent) 45%, transparent) !important;
+}
+
+.cursor-dot-hover {
+  width: 6px !important;
+  height: 6px !important;
+  background-color: var(--cursor-hover-ink) !important;
+  box-shadow: 0 0 16px var(--cursor-hover-ink) !important;
+}
+
+/* ============================================================ */
+/* ACCESSIBILITY                                                */
+/* ============================================================ */
+
+@media (prefers-reduced-transparency: reduce) {
+  .btn-horizon-secondary {
+    background: var(--surface-raised);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --rule-a-faint: 0.22;
+    --rule-a-rule: 0.3;
+    --rule-a-strong: 0.42;
+    --rule-a-prominent: 0.6;
+    --ink-4: var(--ink-3);
+    --ink-5: var(--ink-3);
+    --ink-6: var(--ink-4);
+  }
+
+  /* The light band restates its hairlines literally, so the alpha bump on
+     :root above cannot reach it. It is restated here for the same reason. */
+  .env-light {
+    --wash: rgb(11 13 15 / 0.05);
+    --wash-strong: rgb(11 13 15 / 0.1);
+    --rule-faint: rgb(11 13 15 / 0.24);
+    --rule: rgb(11 13 15 / 0.34);
+    --rule-strong: rgb(11 13 15 / 0.46);
+    --rule-prominent: rgb(11 13 15 / 0.66);
+    --sec-rule: rgb(11 13 15 / 0.24);
+  }
+
+  .btn-horizon-secondary {
+    background: var(--surface-raised);
+    border-color: var(--rule-prominent);
+  }
+}

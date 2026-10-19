@@ -1,0 +1,1642 @@
+/* ============================================================ */
+/* THE SECTION LAYER                                            */
+/*                                                              */
+/* Shared by the homepage and /about. The homepage runs dark    */
+/* hero -> threshold -> light band -> dark close; /about stays  */
+/* in the dark environment end to end. Nothing here knows which */
+/* it is on: every colour resolves through a token, and the     */
+/* light band simply restates those tokens (globals.css).       */
+/*                                                              */
+/* Composition rules this file encodes:                         */
+/*  - hairlines and whitespace separate things, not boxes;      */
+/*  - radius is 0 for every surface and plane, pills are for    */
+/*    interactive chrome only;                                  */
+/*  - tracking is size-specific, never one value for all sizes. */
+/* ============================================================ */
+
+.sec-page {
+  /* overflow-x: clip, NOT hidden. `hidden` forces overflow-y to compute to
+     `auto`, which makes this element a scroll container and breaks every
+     position: sticky descendant -- the pinned scenes would never pin.
+     `clip` contains horizontal bleed without creating a scroll container. */
+  overflow-x: clip;
+
+  /* One gutter for the whole page. The threshold's rail, every section's
+     content edge and the close's rules all land on it, which is what makes
+     the light band read as one grid rather than as stacked blocks. */
+  --gutter: clamp(1.5rem, 5vw, 5rem);
+
+  /* The light ground's feathered leading edge (globals.css,
+     .env-light-ground::before). */
+  --feather: 13vh;
+}
+
+/* Only /about still renders .sec-section. The homepage declares its own
+   grounds, so the alternating nth-of-type rule that used to live here is
+   gone: an nth-of-type selector over a restructured tree is a guess. */
+.sec-section {
+  border-top: 1px solid var(--sec-rule);
+  background: transparent;
+}
+
+.sec-track {
+  border: 0;
+}
+
+/* ---------- Typography ----------
+
+   Tracking is size-specific: display text tightens as it grows, micro-labels
+   open up. A single letter-spacing value would be wrong at one end or both.
+
+   Every section sets the same roles on the same steps, the ones the services
+   list established: item titles --step-2, ledes and notes --step-1, list
+   items and details --step-0, mono labels (indexes, counts, eyebrows, specs)
+   --step--1. Display words and statements are each section's own. */
+
+.sec-display {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-6);
+  font-weight: 300;
+  line-height: 0.98;
+  letter-spacing: -0.042em;
+  color: var(--ink-1);
+  text-wrap: balance;
+}
+
+/* The brand signature: the hero's own "Next." treatment. It is rationed --
+   twice on the homepage, once on /about -- so it reads as a signature rather
+   than as a style. Everything else in the system is the grotesque. */
+.sec-display-accent {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  background: linear-gradient(
+    120deg,
+    var(--accent-ink) 0%,
+    var(--brand-sky) 45%,
+    var(--accent-deep) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Italic serif descenders clip against a tight background-clip box. */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.sec-heading {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-3);
+  font-weight: 300;
+  line-height: 1.06;
+  letter-spacing: -0.028em;
+  max-width: 18ch;
+  color: var(--ink-1);
+  text-wrap: balance;
+}
+
+/* Rationed to two places on the homepage. When every section opened with one
+   the eyebrows competed with the headings and the page read as a template. */
+.sec-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.sec-eyebrow::before {
+  content: "";
+  width: 1.6rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.55;
+  flex: none;
+}
+
+.sec-lede {
+  font-size: var(--step-1);
+  font-weight: 400;
+  line-height: 1.62;
+  letter-spacing: -0.006em;
+  color: var(--ink-3);
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+.sec-statement {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-4);
+  font-weight: 300;
+  line-height: 1.22;
+  letter-spacing: -0.028em;
+  color: var(--ink-1);
+  max-width: 20ch;
+  text-wrap: pretty;
+}
+
+@media (min-width: 768px) {
+  .sec-statement {
+    max-width: 30ch;
+  }
+}
+
+/* ---------- Principles (/about) ---------- */
+
+.sec-principle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--2);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.sec-principle-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--accent-ink);
+  flex: none;
+}
+
+/* ============================================================ */
+/* THE THRESHOLD                                                */
+/*                                                              */
+/* Where the dark technology environment becomes the paper one.  */
+/* The hero is pinned for one viewport and the light ground is   */
+/* laid out over that viewport (globals.css), so paper scrolls   */
+/* up across the hero with the page while the hero drifts,       */
+/* advances very slightly and fades beneath it.                  */
+/*                                                              */
+/* The boundary is layout, not a scripted surface. It moves      */
+/* exactly with the scroll, so nothing can trail behind it at    */
+/* any speed, and it scrubs in both directions for free.         */
+/*                                                              */
+/* The dark gets structure of its own from three hairlines on    */
+/* the mark's 45-degree axis, drifting at three rates while the  */
+/* paper arrives. They are the only diagonals on the site, and   */
+/* the paper answers them with the three stacked tabs' rules:    */
+/* the same count, resolved into the editorial grid.             */
+/* ============================================================ */
+
+.thr {
+  position: relative;
+
+  /* Deliberately transparent. The pointer trail and the mesh glow are fixed
+     layers at z-0 and the page content sits above them at z-10, so anything
+     opaque here paints flat black over the hero's whole atmosphere. The body
+     already supplies the same ground underneath, and letting the ambient
+     layers through is what gives the dark half of this passage real depth for
+     the light to arrive into. The rising surface is opaque, so it covers them
+     on its way up exactly as it should. */
+
+}
+
+.thr-hero {
+  position: relative;
+  z-index: 0;
+}
+
+.thr-hero-plane {
+  position: relative;
+}
+
+/* Structure in the dark: the mark's axis, three hairlines deep, over the
+   hero. Only where the hero is pinned: on a phone it would be one more layer
+   scrolling past for no depth. */
+.thr-geo {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: none;
+  overflow: clip;
+  pointer-events: none;
+}
+
+.thr-geo-axis {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  /* The mark's bars run lower-left to upper-right. */
+  transform: rotate(-45deg);
+}
+
+.thr-geo-line {
+  position: absolute;
+  /* Long enough to cross the frame at 45 degrees plus its own travel, and no
+     longer: a rotated element rasterises its whole bounding box, so length
+     here costs area in both dimensions at once. */
+  left: -75vmax;
+  width: 150vmax;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--brand-cyan-rgb) / 0) 0%,
+    rgb(var(--brand-cyan-rgb) / 0.22) 36%,
+    rgb(var(--brand-cyan-rgb) / 0.07) 64%,
+    rgb(var(--brand-cyan-rgb) / 0) 100%
+  );
+  will-change: transform;
+}
+
+/* Perpendicular spacing in the ratio the three bars sit at in the mark, and
+   three weights to go with the three rates: without that they read as one
+   graphic drawn three times instead of as three distances. */
+.thr-geo-line:nth-child(1) {
+  top: -13vmin;
+  opacity: 1;
+}
+.thr-geo-line:nth-child(2) {
+  top: 0;
+  opacity: 0.55;
+}
+.thr-geo-line:nth-child(3) {
+  top: 13vmin;
+  opacity: 0.3;
+}
+
+/* ---- Wide screens: the hero is pinned and paper arrives over it ----
+   Below this the hero is left alone in normal flow: a pinned hero on a phone
+   spends the visitor's scrolling on choreography instead of content, and the
+   concept survives without it. */
+
+@media (min-width: 900px) {
+  .thr {
+    /* One viewport of hero, then one viewport of pin while the light ground
+       scrolls up over it. The ground's negative margin in globals.css
+       (.env-light-ground) restates this; change both together. */
+    height: 200dvh;
+  }
+
+  .thr-hero {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+  }
+
+  .thr-hero-plane {
+    position: absolute;
+    inset: 0;
+    will-change: transform, opacity;
+  }
+
+  .thr-geo {
+    display: block;
+  }
+}
+
+/* Contrast mode drops the atmosphere: hairlines at a tenth of an alpha are
+   noise at this setting, not depth. */
+@media (prefers-contrast: more) {
+  .thr-geo {
+    display: none;
+  }
+}
+
+/* ============================================================ */
+/* 01 — THE THREE COMMITMENTS                                   */
+/*                                                              */
+/* Three bands that stack as tabs. Each is sticky and pins one  */
+/* tab lower than the band before, so an arriving band covers   */
+/* the body of the one beneath but stops short of its word: by  */
+/* the third, the first two are still stacked above it. Pure    */
+/* CSS -- no script holds them, nothing can desynchronise, and  */
+/* scrubbing backwards is free.                                 */
+/*                                                              */
+/* A band is at least as tall as the frame below its own pin    */
+/* line, which is what guarantees the next one covers its whole */
+/* body on arrival. That is also the section's scroll cost.     */
+/* ============================================================ */
+
+.cmt {
+  position: relative;
+  --cmt-gutter: 12%;
+}
+
+.cmt-band {
+  position: relative;
+  display: grid;
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--surface-base);
+  border-top: 1px solid var(--rule);
+  padding: clamp(3.25rem, 11vw, 4.5rem) var(--gutter) clamp(3rem, 10vw, 4rem);
+}
+
+/* ---- The tab ----
+   Index and meta on one row, the word full width beneath them, closed by a
+   rule. On wide screens the three share a single row (below). */
+
+.cmt-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "num meta"
+    "word word";
+  align-items: baseline;
+  row-gap: clamp(1rem, 4vw, 1.5rem);
+  padding-bottom: clamp(1.25rem, 5vw, 2rem);
+  border-bottom: 1px solid var(--rule);
+}
+
+.cmt-tab > .cmt-num {
+  grid-area: num;
+}
+
+.cmt-tab > .cmt-meta {
+  grid-area: meta;
+}
+
+.cmt-tab > .cmt-word-mask {
+  grid-area: word;
+}
+
+.cmt-num {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2em;
+  color: var(--accent-ink);
+}
+
+.cmt-meta {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-6);
+}
+
+/* ---- The word ---- */
+
+.cmt-word-mask {
+  display: block;
+  overflow: hidden;
+  font-size: clamp(2.2rem, 6.6vw, 6rem);
+  line-height: 1.04;
+  /* Caps only, so no descender clearance is needed; the inset just keeps the
+     mask off the baseline while the word rises through it. */
+  padding-bottom: 0.03em;
+  margin-bottom: -0.03em;
+}
+
+.cmt-word {
+  display: block;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  white-space: nowrap;
+  will-change: transform;
+}
+
+/* ---- Supporting pair ---- */
+
+.cmt-foot {
+  display: grid;
+  gap: clamp(1.75rem, 7vw, 2.5rem);
+  margin-top: clamp(1.75rem, 7vw, 2.5rem);
+}
+
+.cmt-lede {
+  font-size: var(--step-1);
+  font-weight: 300;
+  line-height: 1.38;
+  letter-spacing: -0.018em;
+  color: var(--ink-2);
+  max-width: 30ch;
+  text-wrap: pretty;
+}
+
+/* Editorial metadata, not a menu and not cards. Tight rows, hairline rules,
+   the label carrying the contrast and the index in the brand blue. */
+.cmt-facets {
+  display: grid;
+  align-content: start;
+}
+
+.cmt-facet {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0 0.7rem;
+  align-items: baseline;
+  border-top: 1px solid var(--rule-faint);
+  padding: 0.5rem 0;
+  font-size: var(--step-0);
+  font-weight: 400;
+  letter-spacing: -0.008em;
+  color: var(--ink-2);
+}
+
+.cmt-facet span {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.16em;
+  color: var(--accent-ink);
+}
+
+/* ---- Desktop: the stack ---- */
+
+@media (min-width: 900px) {
+  .cmt {
+    /* Where the first band pins: clear of the fixed wordmark. */
+    --cmt-top: clamp(4.5rem, 10vh, 6rem);
+    /* The tab's height, and the step from one band's pin line to the next.
+       One value for both is the whole trick: a band pins exactly one tab
+       below the band before, so it covers that band's body and nothing of
+       its word. */
+    --cmt-tab: clamp(5.25rem, 12vh, 7.5rem);
+    --cmt-spine-top: calc(var(--cmt-tab) + clamp(1rem, 3vh, 2rem));
+  }
+
+  /* At least the frame below its own pin line, so the band after it covers
+     its whole body on arrival whatever the copy's length. --i is set per
+     band in Commitments.tsx. */
+  .cmt-band {
+    position: sticky;
+    top: calc(var(--cmt-top) + var(--i, 0) * var(--cmt-tab));
+    min-height: calc(100dvh - var(--cmt-top) - var(--i, 0) * var(--cmt-tab));
+    grid-template-columns:
+      var(--cmt-gutter) minmax(0, 1fr)
+      minmax(0, 0.82fr);
+    padding: 0 var(--gutter) clamp(3rem, 8vh, 5rem);
+  }
+
+  /* Index, word and meta on one row of exactly one tab. No column gap: the
+     index column is the band's own gutter column, so the word lands on the
+     same edge as the body beneath it. The next band's top rule closes the
+     tab, so this one draws none of its own. */
+  .cmt-tab {
+    grid-column: 1 / -1;
+    grid-template-columns: var(--cmt-gutter) minmax(0, 1fr) auto;
+    grid-template-areas: "num word meta";
+    align-content: center;
+    column-gap: 0;
+    height: var(--cmt-tab);
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  /* Capped by the frame's height as well as its width, so the word always
+     fits inside its tab, short wide screens included. */
+  .cmt-word-mask {
+    font-size: clamp(2.25rem, min(5.2vw, 8.5vh), 4.75rem);
+  }
+
+  .cmt-foot {
+    grid-column: 2 / -1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.82fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+    margin-top: clamp(1.5rem, 5vh, 3.5rem);
+  }
+
+  .cmt-lede {
+    font-size: var(--step-2);
+    line-height: 1.32;
+    letter-spacing: -0.022em;
+    max-width: 24ch;
+  }
+}
+
+/* The spine.
+   Without it the middle of the frame reads as emptiness; with it, the same
+   emptiness is a field with an edge. It also separates the index column from
+   the content column down the whole height, which is what makes three
+   different-length words look like one system rather than three attempts.
+   Inset top and bottom so it never runs under the fixed wordmark.
+   It ends in the mark's own geometry: three ticks on the 45-degree axis its
+   bars sit on, which is the mark used as structure rather than as a logo. */
+.cmt-spine {
+  position: absolute;
+  left: calc(var(--gutter) + var(--cmt-gutter) - clamp(1.25rem, 3vw, 2.5rem));
+  top: var(--cmt-spine-top, clamp(3.5rem, 9vh, 6rem));
+  bottom: clamp(3rem, 7vh, 5rem);
+  width: 1px;
+  background: var(--rule-faint);
+  pointer-events: none;
+}
+
+.cmt-spine span {
+  position: absolute;
+  bottom: 0;
+  left: -3px;
+  display: block;
+  width: 1px;
+  height: 14px;
+  background: var(--accent);
+  opacity: 0.55;
+  transform: rotate(-45deg);
+  transform-origin: bottom center;
+}
+
+.cmt-spine span:nth-child(2) {
+  bottom: 9px;
+  opacity: 0.38;
+}
+
+.cmt-spine span:nth-child(3) {
+  bottom: 18px;
+  opacity: 0.22;
+}
+
+/* Below 900px the band is a single column. There is no index column for the
+   spine to divide, so it would run down through the lede and facets, with its
+   ticks landing on the last facet's number. */
+@media (max-width: 899px) {
+  .cmt-spine {
+    display: none;
+  }
+}
+
+/* ============================================================ */
+/* THE ENGAGEMENT (/about)                                      */
+/*                                                              */
+/* On /about, after the statement that names its six stages,    */
+/* and so on the dark ground rather than paper. Every colour    */
+/* below is a token, so the move needed nothing of its own.     */
+/*                                                              */
+/* Six stages held on one pinned frame. Nothing about the list   */
+/* moves: the rows are laid out once and scroll only changes     */
+/* which one is live, so there is no layout work at any point in */
+/* the scene -- the active row grows by transform, its lede      */
+/* fades up, and its rule gains an accent segment.               */
+/*                                                              */
+/* The travelling numeral in the gutter is the one large graphic */
+/* object in the section. It is also the progress indicator, the */
+/* thing that makes the frame feel navigated rather than         */
+/* watched, and it is a single translate.                        */
+/* ============================================================ */
+
+.prc {
+  position: relative;
+  --prc-gutter: 16%;
+}
+
+.prc-stage {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: clamp(2rem, 5vh, 3.5rem);
+  padding: clamp(4rem, 10vh, 7rem) var(--gutter) clamp(2.5rem, 6vh, 4.5rem);
+}
+
+.prc-head {
+  display: grid;
+  gap: 1.4rem clamp(1rem, 3vw, 2.5rem);
+}
+
+.prc-statement {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-4);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.042em;
+  color: var(--ink-1);
+  /* Two lines, and the break falls where the sentence turns. */
+  max-width: 11ch;
+  text-wrap: balance;
+}
+
+.prc-lede {
+  font-size: var(--step-1);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-3);
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+
+.prc-count {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-6);
+}
+
+/* ---- The rows ---- */
+
+.prc-rows {
+  position: relative;
+  display: grid;
+  /* Equal rows, always. Inactive notes are transparent rather than removed,
+     so without this the rows would be as tall as their own note is long and
+     the list would sit on a ragged rhythm. */
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.prc-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--prc-gutter) 3.25rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 clamp(0.75rem, 2vw, 1.5rem);
+  border-top: 1px solid var(--rule-faint);
+  padding: clamp(0.7rem, 1.9vh, 1.3rem) 0;
+  align-content: start;
+}
+
+.prc-row:last-child {
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+/* The accent segment that marks the live row. Drawn from the content edge,
+   the same edge every other rule on the page starts from. */
+.prc-row-mark {
+  position: absolute;
+  top: -1px;
+  left: var(--prc-gutter);
+  right: 0;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 620ms var(--ease-out-quad);
+}
+
+.prc-row[data-live="true"] .prc-row-mark {
+  transform: scaleX(1);
+}
+
+.prc-row-num {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+  color: var(--ink-6);
+  transition: color 420ms var(--ease-out-quad);
+}
+
+.prc-row[data-live="true"] .prc-row-num {
+  color: var(--accent-ink);
+}
+
+.prc-row-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.35rem clamp(1.5rem, 4vw, 3rem);
+}
+
+.prc-row-title {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-2);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.032em;
+  color: var(--ink-5);
+  /* Grows from its own left edge so the column it sits in never shifts. */
+  transform-origin: left center;
+  transition: transform 620ms var(--ease-out-quad),
+    color 420ms var(--ease-out-quad);
+  will-change: transform;
+}
+
+.prc-row[data-live="true"] .prc-row-title {
+  color: var(--ink-1);
+  transform: scale(1.34);
+}
+
+.prc-row-note {
+  font-size: var(--step-1);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-4);
+  max-width: 40ch;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 480ms var(--ease-out-quad),
+    transform 480ms var(--ease-out-quad);
+  text-wrap: pretty;
+}
+
+.prc-row[data-live="true"] .prc-row-note {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- The travelling numeral ---- */
+
+.prc-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--prc-gutter);
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* The numeral is hung from the live row's TOP edge, which is where its accent
+   rule is, rather than centred in the row. It then overhangs downward, and
+   that overhang is the point: a numeral that fits inside its row is a label,
+   one that does not is a graphic object. */
+.prc-marker-inner {
+  display: block;
+  transform: translateY(-0.1em);
+}
+
+.prc-marker-digits {
+  display: block;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: min(10vw, 8.5rem);
+  font-weight: 300;
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-1);
+}
+
+.prc-marker-rule {
+  display: block;
+  width: 2.4rem;
+  height: 1px;
+  margin-top: 0.7rem;
+  background: var(--accent);
+}
+
+@media (min-width: 900px) {
+  /* The first column is the numeral's gutter and stays empty: the statement
+     belongs on the content edge everything else reads off. */
+  .prc-head {
+    grid-template-columns:
+      var(--prc-gutter) minmax(0, 0.9fr)
+      minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .prc-row-body {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: baseline;
+  }
+
+  .prc-row-note {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 900px) {
+  .prc {
+    height: 340vh;
+  }
+
+  /* The frame is pinned at exactly one viewport, so what is stacked in it is
+     sized against the viewport's height as well as its width. Sized by width
+     alone, the six rows outgrew the frame, and the last stages -- with the
+     numeral hanging below them -- ran into its bottom edge, where overflow:
+     clip cut them. The bottom gets more room than the top: it is where the
+     numeral overhangs and where the dock floats. */
+  .prc-stage {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow: clip;
+    gap: clamp(1.25rem, 3.5vh, 3rem);
+    padding-block: clamp(3.5rem, 8vh, 6rem) clamp(4.5rem, 12vh, 7.5rem);
+  }
+
+  .prc-statement {
+    font-size: min(var(--step-4), 6.2vh);
+  }
+
+  .prc-lede {
+    font-size: min(var(--step-1), 2.6vh);
+  }
+
+  .prc-row {
+    padding-block: clamp(0.4rem, 1.2vh, 1.1rem);
+  }
+
+  .prc-row-title {
+    font-size: min(var(--step-2), 3.6vh);
+  }
+
+  .prc-row-note {
+    font-size: min(var(--step-1), 2.5vh);
+    line-height: 1.5;
+  }
+
+  .prc-marker-digits {
+    font-size: min(10vw, 15vh, 8.5rem);
+  }
+}
+
+/* ---- The process on a phone ----
+   Composed for the width rather than shrunk to it. The number column and the
+   travelling numeral both depend on a gutter there is no room for, so they
+   go: the number sits above its own stage, every stage is open, and the whole
+   thing is an ordinary scroll. */
+
+@media (max-width: 899px) {
+  .prc-marker,
+  .prc-row-gutter,
+  .prc-row-mark {
+    /* Every stage is open here, so a mark singling one out has nothing to
+       say. The index carries the accent instead. */
+    display: none;
+  }
+
+  .prc-row-num,
+  .prc-row[data-live="true"] .prc-row-num {
+    color: var(--accent-ink);
+  }
+
+  .prc-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: clamp(1.75rem, 6vw, 2.5rem) 0;
+  }
+
+  .prc-row-mark {
+    left: 0;
+  }
+
+  .prc-row-num {
+    margin-bottom: 0.5rem;
+  }
+
+  .prc-row-title,
+  .prc-row[data-live="true"] .prc-row-title {
+    color: var(--ink-1);
+    transform: none;
+  }
+
+  .prc-row-note,
+  .prc-row[data-live="true"] .prc-row-note {
+    opacity: 1;
+    transform: none;
+    margin-top: 0.55rem;
+  }
+}
+
+/* ============================================================ */
+/* SOLUTIONS & SERVICES                                         */
+/*                                                              */
+/* A compact index on one narrow column, and a peripheral layer */
+/* of small technical illustrations. Each belongs to its row    */
+/* and hangs outside the column, alternating left and right,    */
+/* placed against the row rather than inside the grid: it takes */
+/* no width from the text and adds no height to the list. Where */
+/* the margins cannot hold it, it drops into its row instead.   */
+/* ============================================================ */
+
+.cap {
+  position: relative;
+  padding: clamp(4rem, 11vh, 7rem) var(--gutter) clamp(6rem, 15vh, 10rem);
+
+  --cap-col: 48rem;
+  /* The drawings carry their own margin inside the box (the plate fills
+     about four fifths of it), so the visible gap is wider than this. */
+  --cap-shot-gap: clamp(1.5rem, 2vw, 3rem);
+  --cap-shot-w: clamp(8.5rem, 44vw, 11.5rem);
+}
+
+.cap-head,
+.cap-list {
+  max-width: var(--cap-col);
+  margin-inline: auto;
+}
+
+.cap-head {
+  margin-bottom: 3.5rem;
+}
+
+/* ---- The rows ---- */
+
+/* This list set the scale the other sections follow (Typography, above): at
+   smaller steps a list this long read as fine print. */
+.cap-item {
+  position: relative;
+  border-top: 1px solid var(--rule-faint);
+  padding: 2.25rem 0 2.5rem;
+}
+
+.cap-item-head {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 0 1rem;
+}
+
+.cap-item-index {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+  /* One title line tall, so the index sits level with the name's first line
+     at every width. */
+  line-height: calc(var(--step-2) * 1.2);
+  color: var(--ink-6);
+}
+
+.cap-item-title {
+  display: flex;
+  /* Several of these titles wrap to two lines on a phone, and a centred icon
+     then floats between them instead of marking the start. */
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: var(--step-2);
+  font-weight: 400;
+  letter-spacing: -0.026em;
+  line-height: 1.2;
+  color: var(--ink-1);
+  text-wrap: balance;
+}
+
+/* Sized in em so it scales with the title it marks. */
+.cap-item-icon {
+  width: 0.78em;
+  height: 0.78em;
+  margin-top: 0.22em;
+  flex: none;
+  color: var(--accent-ink);
+  stroke-width: 1.5;
+}
+
+.cap-item-spec {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  margin-top: 0.75rem;
+}
+
+.cap-item-lede {
+  font-size: var(--step-1);
+  max-width: var(--measure);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-4);
+  margin-top: 1rem;
+  text-wrap: pretty;
+}
+
+/* ---- Details ---- */
+
+.cap-disclosure {
+  margin-top: 1.25rem;
+}
+
+.cap-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-5);
+  cursor: pointer;
+  list-style: none;
+  transition: color 180ms var(--ease-out-quad);
+}
+
+.cap-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The resting label is already full ink, so hover takes the accent. */
+.cap-summary:hover {
+  color: var(--accent-ink);
+}
+
+.cap-summary:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 4px;
+}
+
+.cap-summary::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 220ms var(--ease-out-quad);
+}
+
+.cap-disclosure[open] .cap-summary::after {
+  transform: translateY(1px) rotate(225deg);
+}
+
+.cap-detail-list {
+  margin-top: 1.75rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.cap-detail-list li {
+  position: relative;
+  padding-left: 1.35rem;
+  font-size: var(--step-0);
+  max-width: 52ch;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-4);
+  text-wrap: pretty;
+}
+
+.cap-detail-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 1px;
+  background: var(--accent-ink);
+  opacity: 0.85;
+}
+
+/* ---- Where the illustrations sit ---- */
+
+.svc-ill-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Narrow screens: a small drawing in the row, under the spec, taking
+   alternate sides so the rhythm survives the collapse. No frame: the
+   drawings stand on the paper like the type does. */
+.cap-shot {
+  position: relative;
+  width: var(--cap-shot-w);
+  aspect-ratio: 1;
+  margin-top: 0.75rem;
+}
+
+.cap-item[data-side="right"] .cap-shot {
+  margin-left: auto;
+}
+
+/* Mid widths: the margins are too narrow to hold a drawing, but the column
+   is still at full width and the copy stops short of its right edge. So the
+   drawing sits in that strip inside its row, level with the name or with the
+   details on alternate rows, and the row keeps its height. */
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .cap {
+    --cap-shot-w: 11.5rem;
+  }
+
+  /* The copy keeps clear of the strip. Only here: on wide screens the
+     drawings are outside the column and the text keeps its full width. */
+  .cap-item-head {
+    padding-right: calc(var(--cap-shot-w) + 2rem);
+  }
+
+  .cap-shot {
+    position: absolute;
+    right: 0;
+    top: 1rem;
+    margin: 0;
+  }
+
+  .cap-item[data-side="right"] .cap-shot {
+    top: auto;
+    bottom: 1rem;
+    margin-left: 0;
+  }
+}
+
+/* Wide screens: the drawings leave the rows for the margins. The width is
+   whatever the margin beside the column can hold, capped, so they never reach
+   the viewport edge and never cause horizontal scrolling. Left ones sit level
+   with their service's name; right ones sit low, level with its details,
+   which staggers the two sides instead of mirroring them. */
+@media (min-width: 1200px) {
+  .cap {
+    --cap-shot-w: clamp(
+      8rem,
+      calc((100vw - var(--cap-col)) / 2 - var(--cap-shot-gap) - 2rem),
+      18rem
+    );
+  }
+
+  .cap-shot {
+    position: absolute;
+    margin: 0;
+  }
+
+  .cap-item[data-side="left"] .cap-shot {
+    right: calc(100% + var(--cap-shot-gap));
+    top: 0.5rem;
+  }
+
+  .cap-item[data-side="right"] .cap-shot {
+    left: calc(100% + var(--cap-shot-gap));
+    bottom: 0.75rem;
+    margin-left: 0;
+  }
+}
+
+/* ---- The illustration system ----
+   Paper surfaces lit from the upper left, hairline edges, dashed construction
+   lines, and the brand's blue and cyan only as signals. The gradients are
+   defined once per page (IllustrationDefs). */
+
+.svc-ill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition: transform 700ms var(--ease-out-quad);
+}
+
+.svc-ill .ill-face {
+  stroke: rgb(11 13 15 / 0.44);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+
+.svc-ill .ill-top {
+  fill: url(#bt-ill-top);
+}
+
+.svc-ill .ill-l {
+  fill: url(#bt-ill-l);
+}
+
+.svc-ill .ill-r {
+  fill: url(#bt-ill-r);
+}
+
+.svc-ill .ill-top-active {
+  fill: url(#bt-ill-active);
+}
+
+.svc-ill .ill-glass-top {
+  fill: rgb(255 255 255 / 0.5);
+}
+
+.svc-ill .ill-glass-l {
+  fill: rgb(236 238 236 / 0.42);
+}
+
+.svc-ill .ill-glass-r {
+  fill: rgb(222 226 228 / 0.38);
+}
+
+.svc-ill .ill-glass-top,
+.svc-ill .ill-glass-l,
+.svc-ill .ill-glass-r {
+  stroke: rgb(11 13 15 / 0.26);
+}
+
+.svc-ill .ill-screen {
+  fill: url(#bt-ill-screen);
+  stroke: rgb(11 13 15 / 0.22);
+  stroke-width: 0.5;
+}
+
+.svc-ill .ill-screen-active {
+  fill: url(#bt-ill-active);
+  stroke: rgb(var(--accent-rgb) / 0.45);
+}
+
+.svc-ill .ill-inset {
+  fill: rgb(11 13 15 / 0.035);
+  stroke: rgb(11 13 15 / 0.2);
+  stroke-width: 0.5;
+}
+
+.svc-ill .ill-slot {
+  fill: rgb(11 13 15 / 0.07);
+  stroke: rgb(11 13 15 / 0.32);
+  stroke-width: 0.6;
+}
+
+.svc-ill .ill-detail {
+  fill: none;
+  stroke: rgb(11 13 15 / 0.2);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+}
+
+.svc-ill .ill-led {
+  fill: rgb(11 13 15 / 0.26);
+}
+
+.svc-ill .ill-lens {
+  fill: var(--accent);
+}
+
+.svc-ill .ill-plate {
+  fill: rgb(255 255 255 / 0.3);
+  stroke: rgb(11 13 15 / 0.16);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 2.4;
+}
+
+.svc-ill .ill-tick {
+  fill: none;
+  stroke: rgb(11 13 15 / 0.34);
+  stroke-width: 0.6;
+}
+
+.svc-ill .ill-shadow {
+  fill: url(#bt-ill-shadow);
+  opacity: 0.85;
+  transition: opacity 700ms var(--ease-out-quad);
+}
+
+.svc-ill .ill-guide {
+  fill: none;
+  stroke: rgb(11 13 15 / 0.3);
+  stroke-width: 0.6;
+  stroke-dasharray: 1.6 2.2;
+}
+
+.svc-ill .ill-orbit {
+  fill: none;
+  stroke: rgb(11 13 15 / 0.15);
+  stroke-width: 0.6;
+  stroke-dasharray: 1.4 2.6;
+}
+
+.svc-ill .ill-zone {
+  fill: rgb(var(--accent-rgb) / 0.045);
+  stroke: rgb(var(--accent-rgb) / 0.32);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 2;
+}
+
+.svc-ill .ill-cone {
+  fill: url(#bt-ill-cone);
+  stroke: rgb(var(--accent-rgb) / 0.2);
+  stroke-width: 0.5;
+}
+
+.svc-ill .ill-link {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+}
+
+/* The signal: a short cyan pulse that can run the length of a connection.
+   Its dash is 5 of the path's normalised 100 units, so moving the offset
+   from 100 to 0 carries it from start to finish. */
+.svc-ill .ill-signal {
+  fill: none;
+  stroke: rgb(var(--brand-cyan-rgb));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 5 95;
+  stroke-dashoffset: 100;
+  opacity: 0;
+}
+
+.svc-ill .ill-node {
+  fill: var(--accent);
+}
+
+.svc-ill .ill-node-cyan {
+  fill: rgb(var(--brand-cyan-rgb));
+}
+
+.svc-ill .ill-halo {
+  fill: url(#bt-ill-glow);
+  opacity: 0.75;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 700ms var(--ease-out-quad),
+    opacity 700ms var(--ease-out-quad);
+}
+
+.svc-ill .ill-leader {
+  fill: none;
+  stroke: rgb(11 13 15 / 0.38);
+  stroke-width: 0.55;
+}
+
+.svc-ill .ill-leader-dot {
+  fill: var(--ink-3);
+}
+
+.svc-ill .ill-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 7.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  fill: var(--ink-4);
+}
+
+/* Labels only where the drawing is large enough to read them. */
+.cap-shot .ill-labelled {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .cap-shot .ill-labelled {
+    display: inline;
+  }
+}
+
+@keyframes ill-signal {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+/* A second name for the same run, so pointing at a service starts it again
+   instead of the browser treating it as the one that already finished. */
+@keyframes ill-signal-again {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Once, after the drawing has built itself. */
+  .cap-item[data-seen] .ill-signal {
+    animation: ill-signal 1.8s var(--ease-in-out-strong) 1.2s both;
+  }
+
+  /* The first run stays in the list so leaving does not replay it. */
+  .cap-item[data-seen]:focus-within .ill-signal {
+    animation:
+      ill-signal 1.8s var(--ease-in-out-strong) 1.2s both,
+      ill-signal-again 1.6s var(--ease-in-out-strong) both;
+  }
+
+  .cap-item:focus-within .svc-ill {
+    transform: translateY(-4px);
+  }
+
+  .cap-item:focus-within .ill-halo {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .cap-item:hover .svc-ill {
+    transform: translateY(-4px);
+  }
+
+  .cap-item:hover .ill-shadow {
+    opacity: 1;
+  }
+
+  .cap-item:hover .ill-halo {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+
+  .cap-item[data-seen]:hover .ill-signal {
+    animation:
+      ill-signal 1.8s var(--ease-in-out-strong) 1.2s both,
+      ill-signal-again 1.6s var(--ease-in-out-strong) both;
+  }
+}
+
+/* ============================================================ */
+/* SECTOR INDEX                                                 */
+/*                                                              */
+/* Five customers as a table of contents, not five cards. The   */
+/* name is the largest type in the light band; the note sits    */
+/* beside it at lede size, and the gap between the two is the   */
+/* whole hierarchy.                                             */
+/* ============================================================ */
+
+.sct {
+  padding: clamp(5rem, 14vh, 9rem) var(--gutter) clamp(7rem, 18vh, 13rem);
+}
+
+.sct-inner {
+  margin-inline: auto;
+  max-width: 82rem;
+}
+
+.sct-row {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid var(--rule-faint);
+  padding: clamp(1.75rem, 4vw, 2.5rem) 0 clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.sct-row:first-child {
+  border-top-color: var(--rule);
+}
+
+/* The clip box carries the display size itself, so its em-based descender
+   clearance is measured against the type it is clipping rather than against
+   the inherited body size. */
+.sct-mask {
+  display: block;
+  overflow: hidden;
+  font-size: var(--step-5);
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.sct-name {
+  display: block;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.042em;
+  color: var(--ink-1);
+  transition: transform 420ms var(--ease-out-quad);
+  will-change: transform;
+}
+
+.sct-note {
+  font-size: var(--step-1);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-4);
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
+.sct-mark {
+  position: absolute;
+  left: 0;
+  top: -1px;
+  height: 1px;
+  width: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 520ms var(--ease-out-quad);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sct-row:hover .sct-name {
+    transform: translateX(0.5rem);
+  }
+
+  .sct-row:hover .sct-mark {
+    transform: scaleX(1);
+  }
+}
+
+@media (min-width: 768px) {
+  .sct-row {
+    /* The note track is sized to the measure it carries, so the column ends
+       where the copy ends instead of leaving an unexplained empty third. */
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 5rem);
+  }
+
+  /* Aligned to the name's cap, not its baseline: baseline alignment against
+     80px display type leaves the note hanging like a footnote. */
+  .sct-note {
+    padding-top: 0.45rem;
+  }
+}
+
+.sct-close {
+  margin-top: clamp(4rem, 10vw, 7rem);
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-3);
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.026em;
+  color: var(--ink-2);
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
+@media (min-width: 768px) {
+  .sct-close {
+    margin-left: auto;
+    max-width: 40ch;
+  }
+}
+
+/* ============================================================ */
+/* THE CLOSE                                                    */
+/*                                                              */
+/* Back to the dark environment, and deliberately faster than   */
+/* the way in: the threshold takes a full viewport to open into */
+/* the light, this takes a fifth of one to shut. Opening is a   */
+/* fade, arriving is a close.                                   */
+/* ============================================================ */
+
+.close-seam {
+  height: 18vh;
+  min-height: 7rem;
+  background-image: linear-gradient(
+    180deg,
+    #f5f5f2 0%,
+    #e4e4df 22%,
+    #9c9e9a 46%,
+    #2b2f32 70%,
+    #08090b 88%,
+    #030305 100%
+  );
+}
+
+.close-seam-rule {
+  display: block;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--brand-cobalt-rgb) / 0) 0%,
+    var(--brand-cobalt) 28%,
+    var(--brand-cyan) 72%,
+    rgb(var(--brand-cyan-rgb) / 0) 100%
+  );
+  opacity: 0.55;
+}
+
+.close {
+  background: var(--surface-base);
+  padding: clamp(5rem, 13vh, 9rem) var(--gutter) clamp(7rem, 16vh, 11rem);
+}
+
+.close-inner {
+  margin-inline: auto;
+  max-width: 82rem;
+}
+
+/* Partners read as an index, not a logo wall. There are no licensed marks in
+   the repo, and setting six companies' trademarks on the page would claim
+   more than the company profile does. */
+.close-partners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem clamp(1.5rem, 4vw, 3rem);
+  border-top: 1px solid var(--rule-faint);
+  border-bottom: 1px solid var(--rule-faint);
+  padding: 1.5rem 0;
+}
+
+.sec-partner {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-5);
+  transition: color 220ms var(--ease-out-quad);
+}
+
+.sec-partner:hover {
+  color: var(--ink-2);
+}
+
+.close-statement {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: var(--step-4);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.036em;
+  color: var(--ink-1);
+  text-wrap: balance;
+}
+
+/* ---------- Accessibility ---------- */
+
+@media (prefers-contrast: more) {
+  .sec-page {
+    --sec-rule: var(--rule-prominent);
+  }
+}
